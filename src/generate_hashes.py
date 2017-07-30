@@ -5,7 +5,7 @@ from itertools import repeat
 import csv
 
 import numpy as np
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction import FeatureHasher
 
 
@@ -65,13 +65,16 @@ def generate_hashes(set_len):
 
     lengths = np.array([len(line) for line in X])
     max_length = np.max(lengths)
+
     print "---------------------------------------------"
     print "Maximal hash length: %s" % max_length
+    
     # filling tail spaces to uniform array size 
+    X_fill = np.copy(X)
     for i in range(X.shape[0]):
         diff_length = max_length-len(X[i])
         if diff_length != 0 :
-            X[i] = np.concatenate((X[i],np.zeros((diff_length), dtype=np.int))).reshape(-1)
+            X_fill[i] = np.concatenate((X[i],np.zeros((diff_length), dtype=np.int))).reshape(-1)
 
 
     maxes = np.array([np.max(line) for line in X])
@@ -89,11 +92,12 @@ def generate_hashes(set_len):
             X_oh[i,ch_i,X[i][ch_i]] = 1
 
 
-    lb = LabelBinarizer()
+    lb = LabelEncoder()
     Y_oh = lb.fit_transform(Y)
 
     print Y_oh
-
+    print X.shape
+    print X_fill.shape
     return X_oh, Y_oh
 
 
