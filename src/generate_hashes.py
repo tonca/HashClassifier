@@ -5,15 +5,12 @@ from itertools import repeat
 import csv
 
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelBinarizer
 from sklearn.feature_extraction import FeatureHasher
 
 
-print('helo')
 
-set_len = 1000
-
-def generate_hashes(word):
+def compute_hashes(word):
 
     gen_hash = []
 
@@ -36,62 +33,72 @@ def generate_hashes(word):
     return gen_hash
 
 
-hashes = []
+def generate_hashes(set_len):
 
-for i in repeat(None, set_len):
+    hashes = []
 
-    str_len = random.randint(5,20)
+    for i in repeat(None, set_len):
 
-    rand_str = lambda n: ''.join([random.choice(string.printable) for i in xrange(n)])
-    
-    # Now to generate a random string of length 10
-    s = rand_str(str_len) 
+        str_len = random.randint(5,20)
 
-    # print s
-    # print "------------------------------------------"
-    hashes = hashes + generate_hashes(s)
+        rand_str = lambda n: ''.join([random.choice(string.printable) for i in xrange(n)])
+        
+        # Now to generate a random string of length 10
+        s = rand_str(str_len) 
 
-print len(hashes)
+        hashes = hashes + compute_hashes(s)
 
-hashes = np.array(hashes)
+    print "---------------------------------------------"
+    print "N of generated hashes: %s" % len(hashes)
 
-print hashes.shape
-print hashes
-X = hashes[:,0]
-Y = hashes[:,1]
+    hashes = np.array(hashes)
 
-print X.shape
-print X[0]
-ch2int = lambda t: ord(t) if len(t)==1 else 0
+    X = hashes[:,0]
+    Y = hashes[:,1]
 
-vch2int = np.vectorize(ch2int)
-print vch2int(X[0])
-for i in range(X.shape[0]):
-    X[i] = vch2int(X[i])
+    # Characters to Indexes
+    ch2int = lambda t: ord(t) if len(t)==1 else 0
+    vch2int = np.vectorize(ch2int)
 
-# label_enc = LabelEncoder()
-# label_enc.fit(X[:])  
+    for i in range(X.shape[0]):
+        X[i] = vch2int(X[i]) 
 
-# string_int = label_enc.transform(X[:])
-lengths = np.array([len(line) for line in X])
-max_length = np.max(lengths)
+    lengths = np.array([len(line) for line in X])
+    max_length = np.max(lengths)
+    print "---------------------------------------------"
+    print "Maximal hash length: %s" % max_length
+    # filling tail spaces to uniform array size 
+    for i in range(X.shape[0]):
+        diff_length = max_length-len(X[i])
+        if diff_length != 0 :
+            X[i] = np.concatenate((X[i],np.zeros((diff_length), dtype=np.int))).reshape(-1)
 
-# filling holes
-for i in range(X.shape[0]):
-    diff_length = max_length-len(X[i])
-    if diff_length != 0 :
-        X[i] = np.concatenate((X[i],np.zeros((diff_length), dtype=np.int))).reshape(-1)
 
-print X[0]
-maxes = np.array([np.max(line) for line in X])
-max_max = np.max(maxes)
-print max_max
+    maxes = np.array([np.max(line) for line in X])
+    tot_chars = np.max(maxes) + 1
+    print "---------------------------------------------"
+    print "Total number of charachters: %s" % tot_chars
 
-X_oh = np.zeros((X.shape[0],64,256))
+    print "---------------------------------------------"
+    print "Feature matrix size (max_length, n_chars): %s x %s" % (max_length, tot_chars)
 
-for i in xrange(0,X.shape[0]):
-    for ch_i in xrange(0,X[i].shape[0]):
-        X_oh[i,ch_i,X[i][ch_i]] = 1
+    X_oh = np.zeros((X.shape[0],max_length,tot_chars))
 
-print X_oh
+    for i in xrange(0,X.shape[0]):
+        for ch_i in xrange(0,X[i].shape[0]):
+            X_oh[i,ch_i,X[i][ch_i]] = 1
 
+
+    lb = LabelBinarizer()
+    Y_oh = lb.fit_transform(Y)
+
+    print Y_oh
+
+    return X_oh, Y_oh
+
+
+
+if __name__ == '__main__':
+
+    N = 5000
+    generate_hashes(N)
