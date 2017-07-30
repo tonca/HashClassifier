@@ -6,12 +6,12 @@ import csv
 
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
+from sklearn.feature_extraction import FeatureHasher
 
 
 print('helo')
 
-set_len = 100
+set_len = 1000
 
 def generate_hashes(word):
 
@@ -30,7 +30,7 @@ def generate_hashes(word):
         m = HASH_FUNCTIONS[h_f]()
         m.update(word)
         
-        hashed = m.digest()
+        hashed = list(m.digest())
         gen_hash.append([hashed, h_f])
 
     return gen_hash
@@ -60,11 +60,38 @@ print hashes
 X = hashes[:,0]
 Y = hashes[:,1]
 
-X = list(X)
+print X.shape
+print X[0]
+ch2int = lambda t: ord(t) if len(t)==1 else 0
 
-label_enc = LabelEncoder()
-label_enc.fit(X)  
+vch2int = np.vectorize(ch2int)
+print vch2int(X[0])
+for i in range(X.shape[0]):
+    X[i] = vch2int(X[i])
 
-string_int = label_enc.transform(X)
+# label_enc = LabelEncoder()
+# label_enc.fit(X[:])  
 
-print np.max(string_int)
+# string_int = label_enc.transform(X[:])
+lengths = np.array([len(line) for line in X])
+max_length = np.max(lengths)
+
+# filling holes
+for i in range(X.shape[0]):
+    diff_length = max_length-len(X[i])
+    if diff_length != 0 :
+        X[i] = np.concatenate((X[i],np.zeros((diff_length), dtype=np.int))).reshape(-1)
+
+print X[0]
+maxes = np.array([np.max(line) for line in X])
+max_max = np.max(maxes)
+print max_max
+
+X_oh = np.zeros((X.shape[0],64,256))
+
+for i in xrange(0,X.shape[0]):
+    for ch_i in xrange(0,X[i].shape[0]):
+        X_oh[i,ch_i,X[i][ch_i]] = 1
+
+print X_oh
+
