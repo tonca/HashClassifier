@@ -5,30 +5,23 @@ from itertools import repeat
 import csv
 
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelBinarizer
 from sklearn.feature_extraction import FeatureHasher
+from sklearn.utils import shuffle
 
 
+HASH_FUNCTIONS = ['whirlpool','sha512']
 
 def compute_hashes(word):
 
     gen_hash = []
 
-    HASH_FUNCTIONS = {
-        'md5' : hashlib.md5, 
-        'sha1' : hashlib.sha1, 
-        'sha224' : hashlib.sha224, 
-        'sha256' : hashlib.sha256, 
-        'sha384' : hashlib.sha384, 
-        'sha512' : hashlib.sha512
-    }
-
-    for h_f in HASH_FUNCTIONS:
-        m = HASH_FUNCTIONS[h_f]()
-        m.update(word)
-        
-        hashed = list(m.digest())
-        gen_hash.append([hashed, h_f])
+    h_f = random.choice(HASH_FUNCTIONS)
+    m = hashlib.new(h_f)
+    m.update(word)
+    
+    hashed = list(m.digest())
+    gen_hash.append([hashed, h_f])
 
     return gen_hash
 
@@ -39,7 +32,7 @@ def generate_hashes(set_len):
 
     for i in repeat(None, set_len):
 
-        str_len = random.randint(5,20)
+        str_len = random.randint(8,30)
 
         rand_str = lambda n: ''.join([random.choice(string.printable) for i in xrange(n)])
         
@@ -48,8 +41,8 @@ def generate_hashes(set_len):
 
         hashes = hashes + compute_hashes(s)
 
-    print "---------------------------------------------"
-    print "N of generated hashes: %s" % len(hashes)
+    # print "---------------------------------------------"
+    # print "N of generated hashes: %s" % len(hashes)
 
     hashes = np.array(hashes)
 
@@ -65,9 +58,10 @@ def generate_hashes(set_len):
 
     lengths = np.array([len(line) for line in X])
     max_length = np.max(lengths)
+    min_length = np.min(lengths)
 
-    print "---------------------------------------------"
-    print "Maximal hash length: %s" % max_length
+    # print "---------------------------------------------"
+    # print "Maximal hash length: %s" % max_length
     
     # filling tail spaces to uniform array size 
     X_fill = np.copy(X)
@@ -79,30 +73,48 @@ def generate_hashes(set_len):
 
     maxes = np.array([np.max(line) for line in X])
     tot_chars = np.max(maxes) + 1
-    print "---------------------------------------------"
-    print "Total number of charachters: %s" % tot_chars
 
-    print "---------------------------------------------"
-    print "Feature matrix size (max_length, n_chars): %s x %s" % (max_length, tot_chars)
+    # print "---------------------------------------------"
+    # print "Total number of charachters: %s" % tot_chars
 
+    # print "---------------------------------------------"
+    # print "Feature matrix size (max_length, n_chars): %s x %s" % (max_length, tot_chars)
+    tot_chars = 256
     X_oh = np.zeros((X.shape[0],max_length,tot_chars))
 
     for i in xrange(0,X.shape[0]):
         for ch_i in xrange(0,X[i].shape[0]):
             X_oh[i,ch_i,X[i][ch_i]] = 1
 
+    Y_oh = np.zeros((Y.shape[0],len(HASH_FUNCTIONS)))
+    for i in xrange(0,Y.shape[0]):
+        class_id = HASH_FUNCTIONS.index(Y[i])
+        Y_oh[i,class_id] = 1
+    
+    # print Y_oh
+    # print X.shape
+    # print X_fill.shape
 
-    lb = LabelEncoder()
-    Y_oh = lb.fit_transform(Y)
+    X_oh, Y_oh = shuffle(X_oh,Y_oh)
 
-    print Y_oh
-    print X.shape
-    print X_fill.shape
     return X_oh, Y_oh
 
+
+def hash_generator(batch_size):
+    
+    while 1:
+        features, labels = generate_hashes(batch_size)
+        yield features, labels
 
 
 if __name__ == '__main__':
 
-    N = 5000
-    generate_hashes(N)
+    print hashlib.algorithms_available
+    N = 1000
+    print generate_hashes(N)
+
+    hasher = hashlib.new('whirlpool')
+    hasher.update("word")
+    
+    hashed = list(hasher.digest())
+    print hashed
