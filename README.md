@@ -1,0 +1,3 @@
+## IT DOESN'T WORK HAHA!
+
+The hashing functions look totally indistinguishable for a Neural Network...
